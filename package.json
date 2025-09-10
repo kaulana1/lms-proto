@@ -1,0 +1,31 @@
+{
+  "name": "lms-proto",
+  "private": true,
+  "workspaces": [
+    "frontend",
+    "api",
+    "ai"
+  ],
+  "scripts": {
+    "dev": "concurrently -n FRONTEND,API -c cyan,magenta \"npm run -w frontend dev\" \"npm run -w api start:dev\"",
+    "build": "npm run -w frontend build && npm run -w api build",
+    "lint": "npm run -ws lint",
+    "seed": "npm run -w api seed"
+  },
+  "devDependencies": {
+    "concurrently": "^9.2.1"
+  },
+  "dependencies": {
+    "@nestjs/config": "^4.0.2",
+    "@nestjs/jwt": "^11.0.0",
+    "@nestjs/passport": "^11.0.5",
+    "@prisma/client": "^6.15.0",
+    "bcrypt": "^6.0.0",
+    "class-transformer": "^0.5.1",
+    "class-validator": "^0.14.2",
+    "passport": "^0.7.0",
+    "passport-jwt": "^4.0.1",
+    "pg": "^8.16.3",
+    "prisma": "^6.15.0"
+  }
+}

@@ -1,0 +1,99 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  TEACHER
+  STUDENT
+}
+
+model Tenant {
+  id      String  @id @default(uuid())
+  name    String
+  schools School[]
+  users   User[]
+  courses Course[]
+}
+
+model School {
+  id       String  @id @default(uuid())
+  name     String
+  tenant   Tenant  @relation(fields: [tenantId], references: [id])
+  tenantId String
+  users    User[]
+  courses  Course[]
+}
+
+model User {
+  id           String  @id @default(uuid())
+  email        String  @unique
+  passwordHash String
+  role         Role
+  tenant       Tenant  @relation(fields: [tenantId], references: [id])
+  tenantId     String
+  school       School? @relation(fields: [schoolId], references: [id])
+  schoolId     String?
+  enrollments  Enrollment[]
+  submissions  Submission[]
+}
+
+model Course {
+  id          String  @id @default(uuid())
+  title       String
+  tenant      Tenant  @relation(fields: [tenantId], references: [id])
+  tenantId    String
+  school      School? @relation(fields: [schoolId], references: [id])
+  schoolId    String?
+  sections    Section[]
+  pages       Page[]
+  assignments Assignment[]
+}
+
+model Section {
+  id          String   @id @default(uuid())
+  name        String
+  course      Course   @relation(fields: [courseId], references: [id])
+  courseId    String
+  enrollments Enrollment[]
+}
+
+model Enrollment {
+  id        String  @id @default(uuid())
+  user      User    @relation(fields: [userId], references: [id])
+  userId    String
+  section   Section @relation(fields: [sectionId], references: [id])
+  sectionId String
+  role      Role
+}
+
+model Page {
+  id       String  @id @default(uuid())
+  title    String
+  content  String
+  course   Course  @relation(fields: [courseId], references: [id])
+  courseId String
+}
+
+model Assignment {
+  id       String   @id @default(uuid())
+  title    String
+  dueAt    DateTime
+  course   Course   @relation(fields: [courseId], references: [id])
+  courseId String
+  submissions Submission[]
+}
+
+model Submission {
+  id           String     @id @default(uuid())
+  assignment   Assignment @relation(fields: [assignmentId], references: [id])
+  assignmentId String
+  student      User       @relation(fields: [studentId], references: [id])
+  studentId    String
+  createdAt    DateTime   @default(now())
+  grade        Int?
+}

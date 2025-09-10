@@ -1,0 +1,23 @@
+import { Controller, Get, Headers } from '@nestjs/common'
+import { PrismaService } from '../prisma/prisma.service'
+import { JwtService } from '@nestjs/jwt'
+
+@Controller('demo')
+export class DemoController {
+  constructor(private prisma: PrismaService, private jwt: JwtService){}
+
+  @Get('overview')
+  async overview(@Headers('authorization') auth?: string){
+    const token = auth?.startsWith('Bearer ') ? auth.slice(7) : null
+    if(!token) return { error: true }
+    const payload: any = this.jwt.decode(token) as any
+    if(!payload?.sub) return { error: true }
+
+    const course = await this.prisma.course.findFirst({ where: { tenantId: payload.tenantId }})
+    if(!course) return { error: true }
+    const section = await this.prisma.section.findFirst({ where: { courseId: course.id }})
+    const pages = await this.prisma.page.findMany({ where: { courseId: course.id }})
+    const assignments = await this.prisma.assignment.findMany({ where: { courseId: course.id }})
+    return { course, section, pages, assignments }
+  }
+}
