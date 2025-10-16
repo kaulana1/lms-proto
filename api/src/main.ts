@@ -9,3 +9,9 @@ async function bootstrap() {
   console.log('✅ API listening on http://localhost:3001');
 }
 bootstrap();
+app.enableCors({
+  origin: ['http://localhost:3000','https://YOUR-FRONTEND.vercel.app'], // update later
+  credentials: true
+});
+
+await app.listen(process.env.PORT ? Number(process.env.PORT) : 3000, '0.0.0.0');
