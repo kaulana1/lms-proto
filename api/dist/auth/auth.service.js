@@ -46,34 +46,38 @@ exports.AuthService = void 0;
 const common_1 = require("@nestjs/common");
 const prisma_service_1 = require("../prisma/prisma.service");
 const bcrypt = __importStar(require("bcrypt"));
-const jwt_1 = require("@nestjs/jwt");
-const config_1 = require("@nestjs/config");
+const jwt = __importStar(require("jsonwebtoken"));
 let AuthService = class AuthService {
-    constructor(prisma, jwt, config) {
-        this.prisma = prisma;
-        this.jwt = jwt;
-        this.config = config;
-    }
-    async validateUser(email, password) {
-        const demoTenantId = this.config.get('DEMO_TENANT_ID') ?? '00000000-0000-0000-0000-000000000001';
-        const user = await this.prisma.withTenant(demoTenantId, (db) => db.user.findUnique({ where: { email } }));
-        if (!user)
-            throw new common_1.UnauthorizedException();
-        const ok = await bcrypt.compare(password, user.passwordHash);
-        if (!ok)
-            throw new common_1.UnauthorizedException();
-        return user;
+    constructor(db) {
+        this.db = db;
     }
     async login(email, password) {
-        const user = await this.validateUser(email, password);
-        const payload = { sub: user.id, role: user.role, tenantId: user.tenantId, schoolId: user.schoolId ?? null, email: user.email };
-        const token = await this.jwt.signAsync(payload, { secret: this.config.get('JWT_SECRET'), expiresIn: '8h' });
+        const user = await this.db.user.findUnique({ where: { email } });
+        if (!user)
+            throw new common_1.UnauthorizedException('Invalid credentials');
+        const hashed = user.passwordHash;
+        const plain = user.password;
+        let ok = false;
+        if (hashed)
+            ok = await bcrypt.compare(password, hashed);
+        else if (plain)
+            ok = plain === password;
+        if (!ok)
+            throw new common_1.UnauthorizedException('Invalid credentials');
+        const secret = process.env.JWT_SECRET || 'dev-super-secret';
+        const token = jwt.sign({
+            sub: user.id,
+            role: user.role,
+            tenantId: user.tenantId,
+            schoolId: user.schoolId,
+            email: user.email,
+        }, secret, { expiresIn: '8h' });
         return { token };
     }
 };
 exports.AuthService = AuthService;
 exports.AuthService = AuthService = __decorate([
     (0, common_1.Injectable)(),
-    __metadata("design:paramtypes", [prisma_service_1.PrismaService, jwt_1.JwtService, config_1.ConfigService])
+    __metadata("design:paramtypes", [prisma_service_1.PrismaService])
 ], AuthService);
 //# sourceMappingURL=auth.service.js.map

@@ -8,23 +8,23 @@ var __decorate = (this && this.__decorate) || function (decorators, target, key,
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.AppModule = void 0;
 const common_1 = require("@nestjs/common");
-const config_1 = require("@nestjs/config");
-const prisma_module_1 = require("./prisma/prisma.module");
 const auth_module_1 = require("./auth/auth.module");
-const demo_module_1 = require("./demo/demo.module");
-const health_controller_1 = require("./health.controller");
+const ai_module_1 = require("./ai/ai.module");
+const analytics_module_1 = require("./analytics/analytics.module");
+const action_cards_module_1 = require("./action-cards/action-cards.module");
+const grading_module_1 = require("./grading/grading.module");
 let AppModule = class AppModule {
 };
 exports.AppModule = AppModule;
 exports.AppModule = AppModule = __decorate([
     (0, common_1.Module)({
         imports: [
-            config_1.ConfigModule.forRoot({ isGlobal: true }),
-            prisma_module_1.PrismaModule,
             auth_module_1.AuthModule,
-            demo_module_1.DemoModule,
+            ai_module_1.AiModule,
+            analytics_module_1.AnalyticsModule,
+            action_cards_module_1.ActionCardsModule,
+            grading_module_1.GradingModule,
         ],
-        controllers: [health_controller_1.HealthController],
     })
 ], AppModule);
 //# sourceMappingURL=app.module.js.map

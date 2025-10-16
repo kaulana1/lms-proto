@@ -14,32 +14,25 @@ var __param = (this && this.__param) || function (paramIndex, decorator) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.AuthController = void 0;
 const common_1 = require("@nestjs/common");
-const class_validator_1 = require("class-validator");
 const auth_service_1 = require("./auth.service");
-class LoginDto {
-}
-__decorate([
-    (0, class_validator_1.IsEmail)(),
-    __metadata("design:type", String)
-], LoginDto.prototype, "email", void 0);
-__decorate([
-    (0, class_validator_1.IsString)(),
-    (0, class_validator_1.MinLength)(6),
-    __metadata("design:type", String)
-], LoginDto.prototype, "password", void 0);
 let AuthController = class AuthController {
     constructor(auth) {
         this.auth = auth;
     }
-    login(body) { return this.auth.login(body.email, body.password); }
+    async login(body) {
+        if (!body?.email || !body?.password) {
+            return { message: 'email and password are required' };
+        }
+        return this.auth.login(body.email, body.password);
+    }
 };
 exports.AuthController = AuthController;
 __decorate([
     (0, common_1.Post)('login'),
     __param(0, (0, common_1.Body)()),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [LoginDto]),
-    __metadata("design:returntype", void 0)
+    __metadata("design:paramtypes", [Object]),
+    __metadata("design:returntype", Promise)
 ], AuthController.prototype, "login", null);
 exports.AuthController = AuthController = __decorate([
     (0, common_1.Controller)('auth'),

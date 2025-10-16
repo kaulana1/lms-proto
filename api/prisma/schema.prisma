@@ -8,92 +8,194 @@ datasource db {
 }
 
 enum Role {
+  ADMIN
   TEACHER
   STUDENT
 }
 
+enum EnrollmentRole {
+  STUDENT
+  TEACHER
+}
+
+enum ModuleItemType {
+  PAGE
+  ASSIGNMENT
+  EXTERNAL_LINK
+}
+
+enum VariantType {
+  BASE
+  LEVEL_EASY
+  ELL
+  LEVEL_CHALLENGE
+  IEP
+}
+
+enum ActionKind {
+  WEAK_STANDARD
+  LATE_SUBMISSIONS
+  WORKLOAD_SPIKE
+}
+
 model Tenant {
-  id      String  @id @default(uuid())
-  name    String
-  schools School[]
-  users   User[]
-  courses Course[]
+  id        String   @id @default(uuid())
+  name      String
+  schools   School[]
+  users     User[]
+  courses   Course[]
+  createdAt DateTime @default(now())
 }
 
 model School {
-  id       String  @id @default(uuid())
-  name     String
-  tenant   Tenant  @relation(fields: [tenantId], references: [id])
+  id       String   @id @default(uuid())
   tenantId String
+  tenant   Tenant   @relation(fields: [tenantId], references: [id])
+  name     String
   users    User[]
   courses  Course[]
 }
 
 model User {
-  id           String  @id @default(uuid())
-  email        String  @unique
+  id           String @id @default(uuid())
+  email        String @unique
   passwordHash String
   role         Role
-  tenant       Tenant  @relation(fields: [tenantId], references: [id])
-  tenantId     String
-  school       School? @relation(fields: [schoolId], references: [id])
-  schoolId     String?
-  enrollments  Enrollment[]
-  submissions  Submission[]
+
+  tenantId String
+  tenant   Tenant @relation(fields: [tenantId], references: [id])
+
+  schoolId String?
+  school   School? @relation(fields: [schoolId], references: [id])
+
+  enrollments Enrollment[]
+  submissions Submission[]
+
+  // Differentiation ledger
+  studentSupportEvents SupportEvent[] @relation("SupportStudent")
+  teacherSupportEvents SupportEvent[] @relation("SupportTeacher")
 }
 
 model Course {
-  id          String  @id @default(uuid())
-  title       String
-  tenant      Tenant  @relation(fields: [tenantId], references: [id])
+  id          String       @id @default(uuid())
   tenantId    String
-  school      School? @relation(fields: [schoolId], references: [id])
+  tenant      Tenant       @relation(fields: [tenantId], references: [id])
   schoolId    String?
+  school      School?      @relation(fields: [schoolId], references: [id])
+  title       String
   sections    Section[]
   pages       Page[]
-  assignments Assignment[]
+  modules     Module[]
+  actionCards ActionCard[]
+  createdAt   DateTime     @default(now())
 }
 
 model Section {
-  id          String   @id @default(uuid())
-  name        String
-  course      Course   @relation(fields: [courseId], references: [id])
+  id          String       @id @default(uuid())
   courseId    String
+  course      Course       @relation(fields: [courseId], references: [id])
+  name        String
   enrollments Enrollment[]
+  assignments Assignment[]
 }
 
 model Enrollment {
-  id        String  @id @default(uuid())
-  user      User    @relation(fields: [userId], references: [id])
+  id        String         @id @default(uuid())
   userId    String
-  section   Section @relation(fields: [sectionId], references: [id])
+  user      User           @relation(fields: [userId], references: [id])
   sectionId String
-  role      Role
-}
+  section   Section        @relation(fields: [sectionId], references: [id])
+  role      EnrollmentRole
 
-model Page {
-  id       String  @id @default(uuid())
-  title    String
-  content  String
-  course   Course  @relation(fields: [courseId], references: [id])
-  courseId String
+  @@unique([userId, sectionId])
 }
 
 model Assignment {
-  id       String   @id @default(uuid())
-  title    String
-  dueAt    DateTime
-  course   Course   @relation(fields: [courseId], references: [id])
-  courseId String
+  id          String              @id @default(uuid())
+  sectionId   String
+  section     Section             @relation(fields: [sectionId], references: [id])
+  title       String
+  body        String?
+  dueAt       DateTime?
   submissions Submission[]
+  variants    AssignmentVariant[]
+  createdAt   DateTime            @default(now())
+  ModuleItem  ModuleItem[]
 }
 
 model Submission {
   id           String     @id @default(uuid())
-  assignment   Assignment @relation(fields: [assignmentId], references: [id])
   assignmentId String
-  student      User       @relation(fields: [studentId], references: [id])
+  assignment   Assignment @relation(fields: [assignmentId], references: [id])
   studentId    String
+  student      User       @relation(fields: [studentId], references: [id])
+  content      String?
+  score        Int?
   createdAt    DateTime   @default(now())
-  grade        Int?
+}
+
+model Page {
+  id         String       @id @default(uuid())
+  courseId   String
+  course     Course       @relation(fields: [courseId], references: [id])
+  title      String
+  content    String?
+  createdAt  DateTime     @default(now())
+  ModuleItem ModuleItem[]
+}
+
+model Module {
+  id       String       @id @default(uuid())
+  courseId String
+  course   Course       @relation(fields: [courseId], references: [id])
+  title    String
+  items    ModuleItem[]
+}
+
+model ModuleItem {
+  id           String         @id @default(uuid())
+  moduleId     String
+  module       Module         @relation(fields: [moduleId], references: [id])
+  type         ModuleItemType
+  pageId       String?
+  page         Page?          @relation(fields: [pageId], references: [id])
+  assignmentId String?
+  assignment   Assignment?    @relation(fields: [assignmentId], references: [id])
+  title        String?
+}
+
+// ---------- AI / Differentiation / Insights ----------
+
+model AssignmentVariant {
+  id           String      @id @default(uuid())
+  assignmentId String
+  assignment   Assignment  @relation(fields: [assignmentId], references: [id])
+  type         VariantType
+  title        String
+  body         String
+  createdAt    DateTime    @default(now())
+
+  supportEvents SupportEvent[]
+}
+
+model SupportEvent {
+  id                  String             @id @default(uuid())
+  studentId           String
+  student             User               @relation("SupportStudent", fields: [studentId], references: [id])
+  assignmentVariantId String?
+  assignmentVariant   AssignmentVariant? @relation(fields: [assignmentVariantId], references: [id])
+  reason              String
+  teacherId           String
+  teacher             User               @relation("SupportTeacher", fields: [teacherId], references: [id])
+  createdAt           DateTime           @default(now())
+}
+
+model ActionCard {
+  id         String     @id @default(uuid())
+  courseId   String
+  course     Course     @relation(fields: [courseId], references: [id])
+  kind       ActionKind
+  payload    Json
+  createdAt  DateTime   @default(now())
+  resolvedAt DateTime?
 }

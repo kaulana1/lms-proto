@@ -10,9 +10,9 @@
   },
   "dependencies": {
     "@nestjs/common": "^11",
-    "@nestjs/config": "^4",
+    "@nestjs/config": "^4.0.2",
     "@nestjs/core": "^11",
-    "@nestjs/jwt": "^11",
+    "@nestjs/jwt": "^11.0.0",
     "@nestjs/passport": "^11",
     "@nestjs/platform-express": "^11",
     "@prisma/client": "^6",

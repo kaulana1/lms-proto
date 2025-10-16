@@ -1,17 +1,17 @@
-import { Module } from '@nestjs/common'
-import { ConfigModule } from '@nestjs/config'
-import { PrismaModule } from './prisma/prisma.module'
-import { AuthModule } from './auth/auth.module'
-import { DemoModule } from './demo/demo.module'
-import { HealthController } from './health.controller'
+import { Module } from '@nestjs/common';
+import { AuthModule } from './auth/auth.module';
+import { AiModule } from './ai/ai.module';
+import { AnalyticsModule } from './analytics/analytics.module';
+import { ActionCardsModule } from './action-cards/action-cards.module';
+import { GradingModule } from './grading/grading.module';
 
 @Module({
   imports: [
-    ConfigModule.forRoot({ isGlobal: true }),
-    PrismaModule,
     AuthModule,
-    DemoModule,
+    AiModule,
+    AnalyticsModule,
+    ActionCardsModule,
+    GradingModule,
   ],
-  controllers: [HealthController],
 })
 export class AppModule {}

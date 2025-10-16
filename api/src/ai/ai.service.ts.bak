@@ -1,0 +1,96 @@
+import { Injectable } from '@nestjs/common'
+import { PrismaService } from '../prisma/prisma.service'
+
+/**
+ * Ultra-simple local "embedding" for demo purposes:
+ * Hash tokens into a 384-dim vector and L2-normalize.
+ * This lets pgvector return sensible-ish results without an external API.
+ */
+function hashToken(t: string) {
+  let h = 2166136261 >>> 0
+  for (let i = 0; i < t.length; i++) {
+    h ^= t.charCodeAt(i)
+    h = Math.imul(h, 16777619) >>> 0
+  }
+  return h
+}
+
+function embedText(text: string, dim = 384): number[] {
+  const v = new Float64Array(dim)
+  const tokens = (text || '').toLowerCase().split(/[^a-z0-9]+/).filter(Boolean)
+  for (const tok of tokens) {
+    const h = hashToken(tok)
+    const idx = h % dim
+    v[idx] += 1
+  }
+  // L2 normalize
+  let norm = 0
+  for (let i = 0; i < dim; i++) norm += v[i]*v[i]
+  norm = Math.sqrt(norm) || 1
+  for (let i = 0; i < dim; i++) v[i] = v[i] / norm
+  return Array.from(v)
+}
+
+function vecLiteral(vec: number[]) {
+  // '[0.123, -0.045, ...]' for pgvector
+  return '[' + vec.map(n => Number(n).toFixed(6)).join(',') + ']'
+}
+
+function esc(s: string) {
+  return s.replace(/'/g, "''")
+}
+
+@Injectable()
+export class AiService {
+  constructor(private prisma: PrismaService) {}
+
+  // Build/update embeddings for all pages in the tenant
+  async reindexTenantPages(tenantId: string) {
+    return this.prisma.withTenant(tenantId, async (tx) => {
+      // Ensure we fetch the fields we need, including `content`
+      const pages = await tx.page.findMany({
+        select: { id: true, title: true, content: true }
+      })
+      let count = 0
+      for (const p of pages) {
+        const text = [p.title, p.content].filter(Boolean).join(' ')
+        const v = embedText(text)
+        const lit = vecLiteral(v)
+        const pid = esc(p.id), tid = esc(tenantId)
+        const sql = `
+          INSERT INTO page_embeddings (page_id, tenant_id, embedding)
+        try {
+          await tx.$executeRawUnsafe(sql)
+        } catch (e) {
+          console.error("[reindex error] page:", p.id, String(e))
+          throw e
+        }
+          ON CONFLICT (page_id) DO UPDATE
+          SET embedding='${lit}'::vector, tenant_id='${tid}'
+        `
+        await tx.$executeRawUnsafe(sql)
+        count++
+      }
+      // optional analyze helps query planner
+      await tx.$executeRawUnsafe(`ANALYZE page_embeddings`)
+      return { indexed: count }
+    })
+  }
+
+  // Vector search: return top-k pages by L2 distance
+  async searchPages(tenantId: string, query: string, k = 5) {
+    return this.prisma.withTenant(tenantId, async (tx) => {
+      const qvec = vecLiteral(embedText(query))
+      const sql = `
+        SELECT p.id, p.title
+        FROM page_embeddings e
+        JOIN "Page" p ON p.id = e.page_id
+        WHERE e.tenant_id = current_setting('app.tenant_id', true)
+        ORDER BY e.embedding <-> '${qvec}'::vector
+        LIMIT ${Math.max(1, Math.min(k, 20))}
+      `
+      const rows = await tx.$queryRawUnsafe<any[]>(sql)
+      return rows
+    })
+  }
+}
