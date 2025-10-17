@@ -5,20 +5,21 @@ import { NestExpressApplication } from '@nestjs/platform-express';
 async function bootstrap() {
   const app = await NestFactory.create<NestExpressApplication>(AppModule);
 
-  // enable proxy trust for Secure cookies on Render
+  // 1) Trust proxy for secure cookies on Render
   app.set('trust proxy', 1);
 
+  // 2) Enable CORS BEFORE defining any routes
   app.enableCors({
     origin: [
       'http://localhost:3000',
-      'https://YOUR-FRONTEND.vercel.app', // <-- change to your real Vercel URL
+      'https://lms-proto-frontend.vercel.app', // <-- your exact Vercel URL
     ],
     credentials: true,
     methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
     allowedHeaders: 'Content-Type, Authorization, Accept',
   });
 
-  // quick health route
+  // 3) Now define the health route (after CORS)
   const http = app.getHttpAdapter().getInstance();
   http.get('/health', (_req, res) => res.json({ ok: true }));
 
