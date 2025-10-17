@@ -3,6 +3,8 @@ import { AppModule } from './app.module';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
+  const http = app.getHttpAdapter().getInstance();
+http.get('/health', (_req, res) => res.json({ ok: true }));
 
   // Allow your frontend(s) to call the API
   app.enableCors({
