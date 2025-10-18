@@ -1,3 +1,4 @@
+import { KpiModule } from "./kpi/kpi.module";
 import { Module } from '@nestjs/common';
 import { AuthModule } from './auth/auth.module';
 import { AiModule } from './ai/ai.module';
@@ -6,7 +7,7 @@ import { ActionCardsModule } from './action-cards/action-cards.module';
 import { GradingModule } from './grading/grading.module';
 
 @Module({
-  imports: [
+  imports: [KpiModule, 
     AuthModule,
     AiModule,
     AnalyticsModule,

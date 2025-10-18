@@ -199,33 +199,3 @@ model ActionCard {
   createdAt  DateTime   @default(now())
   resolvedAt DateTime?
 }
-model KpiEvent {
-  id        String       @id @default(uuid())
-  studentId String
-  courseId  String
-  sectionId String?
-  type      KpiEventType
-  value     Int?
-  createdAt DateTime     @default(now())
-  @@index([studentId, courseId, createdAt])
-}
-
-enum KpiEventType {
-  ASSIGNMENT_SUBMITTED
-  QUIZ_CORRECT
-  QUIZ_TOTAL
-  PRACTICE_SESSION
-}
-
-model KpiSnapshot {
-  id               String   @id @default(uuid())
-  studentId        String
-  courseId         String
-  assignmentsDone  Int      @default(0)
-  assignmentsTotal Int      @default(0)
-  comprehensionHit Int      @default(0)
-  comprehensionTot Int      @default(0)
-  practiceDays7    Int      @default(0)
-  updatedAt        DateTime @updatedAt
-  @@unique([studentId, courseId])
-}
